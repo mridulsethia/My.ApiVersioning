@@ -1,22 +1,67 @@
-﻿using System.Dynamic;
+﻿using My.ApiVersioning.Dto;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.Linq;
 
 namespace My.ApiVersioning.Public
 {
 	public class ValueModelV2 : Models.ValueModel
     {
-		// CODE-FIX TO BE COMPATIBLE WITH PUBLIC VERSION AFTER "SECOND REVISION" in the model: 
+		// Manually build the public API structure to assure that this version is not affected when the modle evolves and new versions are published 
 		public new dynamic Values
 		{
 			get
 			{
-				dynamic expando = Common.Helper.ToDynamic(base.Values); // you can also choose to create an expando object manually
-				dynamic props = new ExpandoObject(); // add "new" (read old) peroperty to the object
-				props.h = expando.Wall.Dimension.Height.ToString();
-				props.w = expando.Wall.Dimension.Width.ToString();
-				expando.Wall = new ExpandoObject(); // Overwrite the Wall object to be able to add old "props" property instead of "dimension"
-				expando.Wall.props = props; // add "new" (read "old") peroperty to the Wall object.
+				var data = base.Values;
+				//dynamic expando = Common.Helper.ToDynamic(data); // you can choose to return the current data structure together with the old structure
+				dynamic expando = new ExpandoObject();
+				expando.clients = GetAllClients(data.Teams); //NOTE: Expando property names are rendered AS IS! camelCase property names manually !!
 				return expando;
 			}
+		}
+
+		private dynamic GetAllClients(IEnumerable<Team> teams)
+		{
+			var clientList = new List<ExpandoObject>();
+			foreach (var team in teams)
+			{
+				var clients = team.Projects.GroupBy(p => p.Client).Select(c => c.First().Client);
+				foreach (var clientName in clients)
+				{
+					clientList.Add(GetClient(team, clientName));
+				}
+			}
+			return clientList;
+		}
+
+		private dynamic GetClient(Team team, string clientName)
+		{
+			dynamic client = new ExpandoObject();
+			client.name = clientName;
+			client.team = team.Name;
+			var projects = new List<ExpandoObject>();
+			foreach (var project in team.Projects.Where(c => c.Client.Equals(clientName)))
+			{
+				projects.Add(GetProject(project));
+			}
+			client.projects = projects;
+			return client;
+		}
+
+		private dynamic GetProject(Project project)
+		{
+			dynamic proj = new ExpandoObject();
+			proj.name = project.Name;
+			var tasks = new List<List<string>>();
+			foreach (var release in project.Releases)
+			{
+				foreach (var task in release.Tasks)
+				{
+					tasks.Add(new List<string> { release.Date, task.Title, task.Status });
+				}
+			}
+			proj.tasks = tasks;
+			return proj;
 		}
 	}
 }

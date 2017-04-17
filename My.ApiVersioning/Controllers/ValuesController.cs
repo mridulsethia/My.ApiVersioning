@@ -17,9 +17,10 @@ namespace My.ApiVersioning.Controllers
 		[HttpGet]
         public Models.ResponseModel Get()
         {
-			HttpContext.Request.Query.TryGetValue("v", out Microsoft.Extensions.Primitives.StringValues ver);
-			return Factories.DataFactory.Get(m_appSettings, ver.ToString());
-        }
+			var response = Factories.DataFactory.Get(m_appSettings, Common.Helper.GetApiVersion(HttpContext.Request));
+			HttpContext.Response.StatusCode = response.StatusCode;
+			return response;
+		}
 
 		// GET api/values/5
 		[HttpGet("{id}")]

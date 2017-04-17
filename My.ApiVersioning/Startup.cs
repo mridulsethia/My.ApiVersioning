@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace My.ApiVersioning
 {
@@ -35,8 +36,9 @@ namespace My.ApiVersioning
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
-
-            app.UseMvc();
+			app.UseDefaultFiles();
+			app.UseStaticFiles();
+			app.UseMvc();
         }
     }
 }
